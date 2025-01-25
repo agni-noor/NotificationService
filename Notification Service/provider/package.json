@@ -1,0 +1,16 @@
+{
+  "name": "provider",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "express": "^4.21.2",
+    "npm": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.6",
+    "dotenv": "^16.4.7"
+  }
+}
