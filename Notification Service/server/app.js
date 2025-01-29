@@ -6,13 +6,14 @@ const PORT = 3000;
 app.use(express.json());
 
 import smsRoutes from "./routes/sms.js";
-
+import emailRoutes from "./routes/email.js"
 
 const startServer = async () => {
     try {
       await connectRabbitMQ();
 
       app.use("/sms", smsRoutes);
+      app.use("/email", emailRoutes)
   
       app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);

@@ -5,7 +5,8 @@ import { getChannel } from '../queue/rabbitmq.js';
 const sendToQueue = async (queue, message) => {
   const channel = getChannel();
   await channel.assertQueue(queue, { durable: true });
-  channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
+  // channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
+  channel.publish("exchange", "sms", Buffer.from(JSON.stringify(message)))
   console.log(`Message sent to queue ${queue}:`, message);
 };
 

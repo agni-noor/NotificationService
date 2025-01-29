@@ -2,6 +2,10 @@ import amqp from 'amqplib';
 import axios from 'axios';
 import { smsProviders } from "../const.js";
 
+const rabbitMQUrl = 'amqp://localhost';
+const connection = await amqp.connect(rabbitMQUrl);
+const channel = await connection.createChannel();
+
 const processSMS = async (providers, payload) => {
   for (const provider of providers) {
     try {
@@ -23,19 +27,15 @@ export const processQueueMessage = async (message) => {
     console.log('Message processed successfully:', message);
   } catch (error) {
     console.error('Processing failed, sending to retry queue:', message);
-    const channel = getChannel();
-    channel.sendToQueue('sms_retry_queue', Buffer.from(message.content), {
-      persistent: true,
-    });
+    // channel.sendToQueue('sms_retry_queue', Buffer.from(message.content), {
+    //   persistent: true,
+    // });
   }
 };
 
-const rabbitMQUrl = 'amqp://localhost';
 
 const setupQueues = async () => {
-  try {
-    const connection = await amqp.connect(rabbitMQUrl);
-    const channel = await connection.createChannel();
+   
 
     await channel.consume('sms_queue', async (message) => {
       if (message) {
@@ -57,10 +57,6 @@ const setupQueues = async () => {
     });
 
     console.log('Workers started, consuming messages.');
-  } catch (error) {
-    console.error('Error setting up queues or workers:', error);
-    process.exit(1);
-  }
 };
 
 setupQueues().catch((err) => console.error(err));
