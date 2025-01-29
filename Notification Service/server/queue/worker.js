@@ -1,5 +1,34 @@
 import amqp from 'amqplib';
-import { processQueueMessage } from './controllers/sms.js';
+import axios from 'axios';
+import { smsProviders } from "../const.js";
+
+const processSMS = async (providers, payload) => {
+  for (const provider of providers) {
+    try {
+      console.log(payload);
+      const response = await axios.post(provider, payload);
+      console.log(`SMS sent successfully via: ${provider}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to send SMS via ${provider}:`, error.message);
+    }
+  }
+  throw new Error('All SMS providers failed.');
+};
+
+export const processQueueMessage = async (message) => {
+  try {
+    // throw new Error("Do retry")
+    await processSMS(smsProviders, message);
+    console.log('Message processed successfully:', message);
+  } catch (error) {
+    console.error('Processing failed, sending to retry queue:', message);
+    const channel = getChannel();
+    channel.sendToQueue('sms_retry_queue', Buffer.from(message.content), {
+      persistent: true,
+    });
+  }
+};
 
 const rabbitMQUrl = 'amqp://localhost';
 

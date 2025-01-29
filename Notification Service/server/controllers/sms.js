@@ -1,7 +1,13 @@
 import axios from "axios";
-import { smsProviders } from "../const.js";
-import { sendToQueue } from '../rabbitmq.js';
 
+import { getChannel } from '../queue/rabbitmq.js';
+
+const sendToQueue = async (queue, message) => {
+  const channel = getChannel();
+  await channel.assertQueue(queue, { durable: true });
+  channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
+  console.log(`Message sent to queue ${queue}:`, message);
+};
 
 export const enqueueSMS = async (req, res) => {
   const { phone, text } = req.body;
@@ -11,8 +17,7 @@ export const enqueueSMS = async (req, res) => {
   }
 
   try {
-
-    //Move to service
+    // Move to service
     await sendToQueue('sms_queue', { phone, text });
     res.status(200).json({ message: 'Message queued for processing.' });
   } catch (error) {
@@ -21,31 +26,3 @@ export const enqueueSMS = async (req, res) => {
   }
 };
 
-const processSMS = async (providers, payload) => {
-  for (const provider of providers) {
-    try {
-      // console.log('entered processsms')
-      // console.log("payload")
-      console.log(payload)
-      const response = await axios.post(provider, payload);
-      console.log(`SMS sent successfully via: ${provider}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to send SMS via ${provider}:`, error.message);
-    }
-  }
-  throw new Error('All SMS providers failed.');
-};
-
-export const processQueueMessage = async (message) => {
-  try {
-    // throw new Error("Do retry")
-    await processSMS(smsProviders, message);
-    console.log('Message processed successfully:', message);
-  } catch (error) {
-    console.error('Processing failed, sending to retry queue:', message);
-    channel.sendToQueue('sms_retry_queue', Buffer.from(message.content), {
-            persistent: true,
-          });
-  }
-};

@@ -1,3 +1,4 @@
+
 import amqp from 'amqplib';
 
 let channel;
@@ -20,7 +21,6 @@ export const connectRabbitMQ = async () => {
       },
     });
 
-
     await channel.bindQueue('sms_retry_queue', 'retry_exchange', 'sms_retry');
 
     console.log('Connected to RabbitMQ and queues initialized');
@@ -30,8 +30,4 @@ export const connectRabbitMQ = async () => {
   }
 };
 
-export const sendToQueue = async (queue, message) => {
-  await channel.assertQueue(queue, { durable: true });
-  channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
-  console.log(`Message sent to queue ${queue}:`, message);
-};
+export const getChannel = () => channel;

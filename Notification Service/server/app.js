@@ -1,5 +1,5 @@
 import express from "express"
-import { connectRabbitMQ } from './rabbitmq.js';
+import { connectRabbitMQ } from './queue/rabbitmq.js';
 
 const app = express();
 const PORT = 3000;
