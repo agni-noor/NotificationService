@@ -43,7 +43,7 @@ const setupQueues = async () => {
         console.log('Received message:', msgContent);
 
         try {
-          console.log(`Processing Email for to: ${msgContent.to}, subject: ${msgContent.subject}, body: ${msgContent.body}`);
+          console.log(`Processing Email for subject: ${msgContent.subject}, body: ${msgContent.body}, recipients: ${msgContent.recipients}`);
           await processQueueEmails(msgContent);
           channel.ack(message); 
         } catch (error) {

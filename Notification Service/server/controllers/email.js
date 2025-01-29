@@ -9,15 +9,15 @@ const sendToQueue = async (queue, message) => {
 };
 
 export const enqueueEmail = async (req, res) => {
-  const { to, subject, body } = req.body;
+  const { subject, body, recipients } = req.body;
 
-  if (!to || !subject || !body) {
-    return res.status(400).json({ error: 'to, subject and body are required.' });
+  if (!subject || !body || !recipients) {
+    return res.status(400).json({ error: 'subject, body and recipients are required.' });
   }
 
   try {
     // Move to service
-    await sendToQueue('email_queue', { to, subject, body });
+    await sendToQueue('email_queue', { subject, body, recipients });
     res.status(200).json({ message: 'Message queued for processing.' });
   } catch (error) {
     console.error('Failed to enqueue message:', error.message);
