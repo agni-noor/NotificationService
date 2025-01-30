@@ -1,35 +1,22 @@
 import amqp from 'amqplib';
-import axios from 'axios';
-import { emailProviders } from "../const.js";
+import { sendEmailToProvider1, sendEmailToProvider2, sendEmailToProvider3 } from '../const.js';
 
 const rabbitMQUrl = 'amqp://localhost';
 const connection = await amqp.connect(rabbitMQUrl);
 const channel = await connection.createChannel();
 
 const processEmail = async (providers, payload) => {
-  for (const provider of providers) {
-    try {
-      console.log(payload);
-      const response = await axios.post(provider, payload);
-      console.log(`Email sent successfully via: ${provider}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to send Email via ${provider}:`, error.message);
-    }
-  }
-  throw new Error('All Email providers failed.');
+
+  await sendEmailToProvider1(payload)
+
 };
 
 export const processQueueEmails = async (message) => {
   try {
-    // throw new Error("Do retry")
     await processEmail(emailProviders, message);
     console.log('Message processed successfully:', message);
   } catch (error) {
     console.error('Processing failed, sending to retry queue:', message);
-    // channel.sendToQueue('sms_retry_queue', Buffer.from(message.content), {
-    //   persistent: true,
-    // });
   }
 };
 

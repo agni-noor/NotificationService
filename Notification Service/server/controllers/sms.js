@@ -1,4 +1,3 @@
-import axios from "axios";
 
 import { getChannel } from '../queue/rabbitmq.js';
 
