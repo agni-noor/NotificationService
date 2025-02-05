@@ -1,21 +1,15 @@
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
-import axios from 'axios';
+import { assertEmailQueue } from '../queue/assertEmailQueues';
+import { emailProviders } from '../providers/emailProviders';
 import { getEmailProviderPriorities } from '../providers/getEmailProviders';
 
-type EmailPayload = {
+interface EmailPayload {
   subject: string;
   body: string;
   recipients: string[];
-};
-
-type Provider = {
-  provider_name: string;
-  provider_address: string;
-  priority: number;
-};
+}
 
 const rabbitMQUrl: string = 'amqp://localhost';
-
 let connection: Connection;
 let channel: Channel;
 
@@ -24,31 +18,33 @@ const connectRabbitMQ = async (): Promise<void> => {
   channel = await connection.createChannel();
 };
 
-const sendEmail = async (provider: Provider, payload: EmailPayload): Promise<boolean> => {
+const sendEmail = async (providerKey: string, payload: EmailPayload): Promise<boolean> => {
+  const provider = emailProviders.find(p => p.provider_key === providerKey);
+  if (!provider) {
+    console.error(`No matching provider found for key: ${providerKey}`);
+    return false;
+  }
+
   try {
-    console.log(`Attempting to send Email via ${provider.provider_name}...`);
+    console.log(`Attempting to send Email via ${provider.provider_key}...`);
     console.log('Payload:', payload);
     console.log('Provider Address:', provider.provider_address);
 
-    await axios.post(provider.provider_address, payload);
-    console.log(`Email sent successfully via ${provider.provider_name}`);
+    await provider.sendEmail(payload);
+    console.log(`Email sent successfully via ${provider.provider_key}`);
     return true;
   } catch (error: any) {
-    console.error(`Failed to send Email via ${provider.provider_name}:`, error.message);
+    console.error(`Failed to send Email via ${provider.provider_key}:`, error.message);
     return false;
   }
 };
 
-const sortProvidersByPriority = (providers: Provider[]): Provider[] => {
-  return providers.sort((a, b) => a.priority - b.priority);
-};
-
 const processEmail = async (payload: EmailPayload): Promise<void> => {
   const providers = await getEmailProviderPriorities();
-  const sortedProviders = sortProvidersByPriority(providers);
+  const sortedProviders = providers.sort((a, b) => a.priority - b.priority);
 
   for (const provider of sortedProviders) {
-    const success = await sendEmail(provider, payload);
+    const success = await sendEmail(provider.provider_key, payload);
     if (success) return;
   }
 
@@ -56,11 +52,7 @@ const processEmail = async (payload: EmailPayload): Promise<void> => {
 };
 
 const setupQueues = async (): Promise<void> => {
-  await channel.assertQueue('email_queue', {
-    durable: true,
-    deadLetterExchange: 'dlx_exchange',
-    deadLetterRoutingKey: 'email_queue_dlq'
-  });
+  await assertEmailQueue(channel)
 
   await channel.consume('email_queue', async (message: ConsumeMessage | null) => {
     if (message) {
