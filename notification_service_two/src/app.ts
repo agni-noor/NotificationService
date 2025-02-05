@@ -1,10 +1,30 @@
-import express from "express";
+import express, { Application } from "express";
+import dotenv from "dotenv";
+import { connectRabbitMQ } from "./queue/rabbitmq";
+// import smsRoutes from "./routes/sms";
+import emailRoutes from "./routes/email";
 
-const app = express();
+dotenv.config();
 
-const PORT = 3000;
+const app: Application = express();
+const PORT: number = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
+app.use(express.json());
 
-app.listen(PORT, ()=>{
-    console.log(`Running on PORT ${PORT}`)
-})
+const startServer = async (): Promise<void> => {
+  try {
+    await connectRabbitMQ();
+
+    // app.use("/sms", smsRoutes);
+    app.use("/email", emailRoutes);
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting server:", (error as Error).message);
+    process.exit(1);
+  }
+};
+
+startServer();
