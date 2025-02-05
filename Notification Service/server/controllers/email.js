@@ -1,6 +1,8 @@
 
 import { getChannel } from '../queue/rabbitmq.js';
 
+
+//Move to service
 const sendToQueue = async (queue, message) => {
   const channel = getChannel();
   await channel.assertQueue('email_queue', {

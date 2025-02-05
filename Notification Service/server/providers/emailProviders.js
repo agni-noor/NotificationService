@@ -11,6 +11,8 @@ const provider1 = async (payload) => {
   }
 };
 
+
+//Don't catch error here
 const provider2 = async (payload) => {
   try {
     console.log(payload);
@@ -31,5 +33,4 @@ const provider3 = async (payload) => {
   }
 };
 
-// Create an array of provider functions
 export const emailProviders = [provider1, provider2, provider3];
