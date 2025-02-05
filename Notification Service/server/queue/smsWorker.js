@@ -42,19 +42,13 @@ const processSMS = async (payload) => {
 };
 
 
-export const processQueueMessage = async (message) => {
-  try {
-    await processSMS(message); 
-    console.log('Message processed successfully:', message);
-  } catch (error) {
-    console.error('Processing failed, sending to retry queue:', error.message);
-
-  }
-};
-
 
 const setupQueues = async () => {
-  await channel.assertQueue('sms_queue', { durable: true });
+  await channel.assertQueue('sms_queue', {
+    durable: true,
+    deadLetterExchange:'dlx_exchange',
+    deadLetterRoutingKey:'sms_queue_dlq'
+   }); 
 
   await channel.consume('sms_queue', async (message) => {
     if (message) {
@@ -65,7 +59,8 @@ const setupQueues = async () => {
         console.log(
           `Processing SMS for phone: ${msgContent.phone}, text: ${msgContent.text}`
         );
-        await processQueueMessage(msgContent); 
+        await processSMS(msgContent); 
+        console.log('Message processed successfully:', msgContent);
         channel.ack(message);
       } catch (error) {
         console.error('Failed to send SMS, moving to retry queue:', error.message);
@@ -77,5 +72,4 @@ const setupQueues = async () => {
   console.log('Workers started, consuming messages.');
 };
 
-// Start the queue setup
-setupQueues().catch((err) => console.error(err));
+setupQueues()

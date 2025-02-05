@@ -1,4 +1,3 @@
-
 import amqp from 'amqplib';
 
 let channel;
@@ -8,24 +7,49 @@ export const connectRabbitMQ = async () => {
     const connection = await amqp.connect('amqp://localhost');
     channel = await connection.createChannel();
 
-    await channel.assertQueue('sms_queue', { durable: true });
 
-    await channel.assertQueue('email_queue', { durable: true });
+    // await channel.assertQueue('sms_queue', { durable: true });
+
+    await channel.assertQueue('email_queue', {
+      durable: true,
+      deadLetterExchange:'dlx_exchange',
+      deadLetterRoutingKey:'email_queue_dlq'
+     
+     });
+    await channel.assertQueue('email_queue_dlq', {
+      durable: true,
+      arguments: {
+        'x-message-ttl': 5000,
+        'x-dead-letter-exchange': '',
+        'x-dead-letter-routing-key': 'email_queue'
+      }
+    });
+
+
+
+    await channel.assertQueue('sms_queue', {
+      durable: true,
+      deadLetterExchange:'dlx_exchange',
+      deadLetterRoutingKey:'sms_queue_dlq'
+     
+     });
+    await channel.assertQueue('sms_queue_dlq', {
+      durable: true,
+      arguments: {
+        'x-message-ttl': 5000,
+        'x-dead-letter-exchange': '',
+        'x-dead-letter-routing-key': 'sms_queue'
+      }
+    });
 
     await channel.assertExchange('exchange', 'direct', { durable: true });
+    await channel.assertExchange('dlx_exchange', 'direct', { durable: true });
 
-    // await channel.assertQueue('sms_retry_queue', {
-    //   durable: true,
-    //   arguments: {
-    //     'x-dead-letter-exchange': '', 
-    //     'x-dead-letter-routing-key': 'sms_queue', 
-    //     'x-message-ttl': 10000,
-    //   },
-    // });
-
+    
     await channel.bindQueue('sms_queue', 'exchange', 'sms');
-
     await channel.bindQueue('email_queue', 'exchange', 'email');
+    await channel.bindQueue('email_queue_dlq', 'dlx_exchange', 'email_queue_dlq');
+    await channel.bindQueue('sms_queue_dlq', 'dlx_exchange', 'sms_queue_dlq');
 
     console.log('Connected to RabbitMQ and queues initialized');
   } catch (error) {

@@ -44,18 +44,17 @@ const processEmail = async (payload) => {
 
 
 
-export const processQueueEmails = async (message) => {
-  try {
-    await processEmail(message);
-    console.log('Email processed successfully:', message);
-  } catch (error) {
-    console.error('Processing failed, sending to retry queue:', error.message);
-  }
-};
-
 
 const setupQueues = async () => {
-  await channel.assertQueue('email_queue', { durable: true });
+
+  await channel.assertQueue('email_queue', {
+     durable: true,
+     deadLetterExchange:'dlx_exchange',
+     deadLetterRoutingKey:'email_queue_dlq'
+    
+    });
+
+
 
   await channel.consume('email_queue', async (message) => {
     if (message) {
@@ -66,11 +65,12 @@ const setupQueues = async () => {
         console.log(
           `Processing Email for subject: ${msgContent.subject}, body: ${msgContent.body}, recipients: ${msgContent.recipients}`
         );
-        await processQueueEmails(msgContent);
+        await processEmail(msgContent);
+        console.log('Email processed successfully:', msgContent);
         channel.ack(message);
       } catch (error) {
         console.error('Failed to send email, moving to retry queue:', error.message);
-        channel.ack(message); 
+        channel.nack(message, false, false); 
       }
     }
   });
@@ -78,5 +78,4 @@ const setupQueues = async () => {
   console.log('Workers started, consuming emails.');
 };
 
-// Start the queue setup
-setupQueues().catch((err) => console.error(err));
+setupQueues()
