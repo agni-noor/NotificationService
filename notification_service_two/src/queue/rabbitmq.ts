@@ -12,6 +12,7 @@ export const connectRabbitMQ = async (): Promise<void> => {
     channel = await connection.createChannel();
     await channel.assertExchange('exchange', 'direct', { durable: true });
     await channel.assertExchange('dlx_exchange', 'direct', { durable: true });
+    await channel.assertExchange('emailBackoffExchange', 'headers', { durable: true });
     await assertEmailQueue(channel)
     await assertEmailDLQ(channel)
 
@@ -31,7 +32,7 @@ export const connectRabbitMQ = async (): Promise<void> => {
       }
     });
 
-
+    
     await channel.bindQueue('sms_queue', 'exchange', 'sms');
     await channel.bindQueue('email_queue', 'exchange', 'email');
     await channel.bindQueue('email_queue_dlq', 'dlx_exchange', 'email_queue_dlq');

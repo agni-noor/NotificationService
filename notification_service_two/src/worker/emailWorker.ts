@@ -67,8 +67,41 @@ const setupQueues = async (): Promise<void> => {
         console.log('Email processed successfully:', msgContent);
         channel.ack(message);
       } catch (error: any) {
+        let headers = message.properties.headers || {};
+        let retryCount = headers['retry-count'] || 0;
+        retryCount += 1;
+        headers = {
+          "x-match":"all",
+          "type":"email",
+          "retry-count":`${retryCount}`
+        }
+
+        if(retryCount>3){
+          
         console.error('Failed to send email, moving to retry queue:', error.message);
         channel.nack(message, false, false);
+        }else{
+
+          //EXPONENTIAL BACKOFF LOGIC
+          console.log(`Sending to emailBackoffQueue${retryCount}`)
+          const TTL = retryCount * 1000
+          const queueName = `emailBackoffQueue${retryCount}`
+          await channel.assertQueue(queueName, {
+            durable: true,
+            arguments: {
+              'x-message-ttl': TTL,
+              'x-dead-letter-exchange': 'exchange',
+              'x-dead-letter-routing-key': 'email'
+            }
+          });
+          await channel.bindQueue(queueName, "emailBackoffExchange","",headers )
+          channel.publish("emailBackoffExchange", "", Buffer.from(JSON.stringify(msgContent)),{
+            persistent:true,
+            headers
+          })
+          channel.ack(message);
+
+        }
       }
     }
   });
