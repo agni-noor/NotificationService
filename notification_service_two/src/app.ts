@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { connectRabbitMQ } from "./queue/rabbitmq";
 // import smsRoutes from "./routes/sms";
 import emailRoutes from "./routes/email";
+import { client } from "./redis/client";
 
 dotenv.config();
 
@@ -27,4 +28,11 @@ const startServer = async (): Promise<void> => {
   }
 };
 
+async function init(){
+  await client.set("provider:4","provider4")
+  const result = await  client.get("provider:4")
+  console.log(result)
+}
+
 startServer();
+init()
